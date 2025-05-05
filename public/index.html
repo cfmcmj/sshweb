@@ -14,7 +14,7 @@
   <h1>Welcome to SSHweb</h1>
   <p>Web-based SSH client</p>
   <div>
-    <input class="input" id="host" placeholder="Host (e.g., example.com)" />
+    <input class="input" id="host" placeholder="Host (e.g., s16.serv00.com)" />
     <input class="input" id="username" placeholder="Username" />
     <input class="input" id="password" type="password" placeholder="Password" />
     <button onclick="connectSSH()">Connect to SSH</button>
@@ -22,9 +22,12 @@
   <pre id="output"></pre>
   <script>
     function connectSSH() {
-      const host = document.getElementById('host').value;
+      let host = document.getElementById('host').value;
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
+
+      // 移除协议头（如 http:// 或 https://）
+      host = host.replace(/^https?:\/\//, '');
 
       fetch('/connect-ssh', {
         method: 'POST',
