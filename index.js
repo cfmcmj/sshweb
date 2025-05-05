@@ -1,5 +1,5 @@
 const express = require('express');
-const net = require('net');
+const https = require('https');
 const app = express();
 
 app.use(express.static('public'));
@@ -19,23 +19,33 @@ app.post('/connect-ssh', (req, res) => {
     return res.status(400).json({ error: 'Missing host' });
   }
 
-  console.log(`Attempting TCP connection to ${host}:80`);
+  console.log(`Attempting HTTPS connection to ${host}`);
 
-  const socket = new net.Socket();
-  socket.setTimeout(5000);
-  socket.on('connect', () => {
-    console.log(`TCP connection to ${host}:80 successful`);
-    socket.destroy();
-    res.json({ message: 'TCP connection to port 80 successful' });
-  }).on('timeout', () => {
-    console.error(`TCP connection to ${host}:80 timed out`);
-    socket.destroy();
-    res.status(500).json({ error: 'TCP connection timed out' });
-  }).on('error', (err) => {
-    console.error(`TCP connection error: ${err.message}`);
-    socket.destroy();
-    res.status(500).json({ error: `TCP connection failed: ${err.message}`, code: err.code });
-  }).connect(host, 80);
+  const options = {
+    hostname: host,
+    port: 443,
+    path: '/',
+    method: 'GET',
+    timeout: 5000
+  };
+
+  const req = https.request(options, (response) => {
+    console.log(`HTTPS connection to ${host}:443 successful, status: ${response.statusCode}`);
+    res.json({ message: `HTTPS connection successful, status: ${response.statusCode}` });
+  });
+
+  req.on('timeout', () => {
+    console.error(`HTTPS connection to ${host}:443 timed out`);
+    req.destroy();
+    res.status(500).json({ error: 'HTTPS connection timed out' });
+  });
+
+  req.on('error', (err) => {
+    console.error(`HTTPS connection error: ${err.message}`);
+    res.status(500).json({ error: `HTTPS connection failed: ${err.message}`, code: err.code });
+  });
+
+  req.end();
 });
 
 module.exports = app;
