@@ -15,11 +15,17 @@ app.get('/ssh', (req, res) => {
 
 app.post('/connect-ssh', (req, res) => {
   const { host, username, password } = req.body;
-  const conn = new Client();
+  if (!host || !username || !password) {
+    return res.status(400).json({ error: 'Missing host, username, or password' });
+  }
 
+  const conn = new Client();
   conn.on('ready', () => {
     conn.exec('whoami', (err, stream) => {
-      if (err) return res.json({ error: err.message });
+      if (err) {
+        conn.end();
+        return res.json({ error: err.message });
+      }
       let output = '';
       stream.on('data', (data) => {
         output += data;
@@ -29,12 +35,14 @@ app.post('/connect-ssh', (req, res) => {
       });
     });
   }).on('error', (err) => {
-    res.json({ error: err.message });
+    conn.end();
+    res.status(500).json({ error: `Connection failed: ${err.message}`, code: err.code });
   }).connect({
     host,
     username,
     password,
-    port: 22
+    port: 22,
+    timeout: 10000 // 10秒超时
   });
 });
 
