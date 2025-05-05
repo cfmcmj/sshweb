@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSHweb</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+    h1 { color: #333; }
+  </style>
+</head>
+<body>
+  <h1>Welcome to SSHweb</h1>
+  <p>Web-based SSH client</p>
+  <button onclick="connectSSH()">Connect to SSH</button>
+  <script>
+    function connectSSH() {
+      fetch('/ssh')
+        .then(res => res.json())
+        .then(data => alert(data.message))
+        .catch(err => console.error(err));
+    }
+  </script>
+</body>
+</html>
