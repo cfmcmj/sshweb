@@ -7,17 +7,34 @@
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
     h1 { color: #333; }
+    .input { margin: 10px; padding: 5px; }
   </style>
 </head>
 <body>
   <h1>Welcome to SSHweb</h1>
   <p>Web-based SSH client</p>
-  <button onclick="connectSSH()">Connect to SSH</button>
+  <div>
+    <input class="input" id="host" placeholder="Host (e.g., example.com)" />
+    <input class="input" id="username" placeholder="Username" />
+    <input class="input" id="password" type="password" placeholder="Password" />
+    <button onclick="connectSSH()">Connect to SSH</button>
+  </div>
+  <pre id="output"></pre>
   <script>
     function connectSSH() {
-      fetch('/ssh')
+      const host = document.getElementById('host').value;
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      fetch('/connect-ssh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host, username, password })
+      })
         .then(res => res.json())
-        .then(data => alert(data.message))
+        .then(data => {
+          document.getElementById('output').textContent = data.output || data.error;
+        })
         .catch(err => console.error('Error:', err));
     }
   </script>
