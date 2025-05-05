@@ -1,4 +1,5 @@
 const express = require('express');
+const WebSocket = require('ws');
 const app = express();
 
 app.use(express.static('public'));
@@ -19,7 +20,18 @@ app.post('/connect-ssh', (req, res) => {
   if (!host) {
     return res.status(400).json({ error: 'Missing host' });
   }
-  res.json({ message: `Test connection to ${host}` });
+
+  // 测试 WebSocket 连接
+  const ws = new WebSocket(`wss://${host}:443`);
+  ws.on('open', () => {
+    console.log(`WebSocket connection to ${host}:443 successful`);
+    ws.close();
+    res.json({ message: `WebSocket test to ${host} successful` });
+  });
+  ws.on('error', (err) => {
+    console.error(`WebSocket error: ${err.message}`);
+    res.status(500).json({ error: `WebSocket connection failed: ${err.message}` });
+  });
 });
 
 module.exports = app;
