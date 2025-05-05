@@ -42,7 +42,7 @@ app.post('/connect-ssh', (req, res) => {
     username,
     password,
     port: 22,
-    timeout: 10000 // 10秒超时
+    timeout: 10000
   });
 });
 
