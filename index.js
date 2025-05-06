@@ -21,17 +21,21 @@ app.post('/connect-ssh', (req, res) => {
     return res.status(400).json({ error: 'Missing host' });
   }
 
-  // 测试 WebSocket 连接
-  const ws = new WebSocket(`wss://${host}:443`);
+  // 测试 WebSocket 连接到已知服务
+  const ws = new WebSocket('wss://echo.websocket.org');
   ws.on('open', () => {
-    console.log(`WebSocket connection to ${host}:443 successful`);
+    console.log('WebSocket connection to echo.websocket.org successful');
+    ws.send('Test message');
+  });
+  ws.on('message', (data) => {
+    console.log(`Received from echo.websocket.org: ${data}`);
     ws.close();
-    res.json({ message: `WebSocket test to ${host} successful` });
+    res.json({ message: `WebSocket test successful: ${data}` });
   });
   ws.on('error', (err) => {
     console.error(`WebSocket error: ${err.message}`);
     res.status(500).json({ error: `WebSocket connection failed: ${err.message}` });
   });
 });
-// Force update for Vercel sync test
+
 module.exports = app;
