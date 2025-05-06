@@ -1,5 +1,4 @@
 const express = require('express');
-const WebSocket = require('ws');
 const { Client } = require('ssh2');
 const app = express();
 
