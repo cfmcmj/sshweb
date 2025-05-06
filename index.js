@@ -1,5 +1,6 @@
 const express = require('express');
 const WebSocket = require('ws');
+const { Client } = require('ssh2');
 const app = express();
 
 app.use(express.static('public'));
@@ -15,26 +16,36 @@ app.get('/ssh', (req, res) => {
 });
 
 app.post('/connect-ssh', (req, res) => {
-  const { host } = req.body;
-  console.log(`Received /connect-ssh request with host: ${host}`);
-  if (!host) {
-    return res.status(400).json({ error: 'Missing host' });
+  const { host, username, password } = req.body;
+  console.log(`Received /connect-ssh request with host: ${host}, username: ${username}`);
+  if (!host || !username || !password) {
+    return res.status(400).json({ error: 'Missing host, username or password' });
   }
 
-  // 测试 WebSocket 连接到已知服务
-  const ws = new WebSocket('wss://echo.websocket.org');
-  ws.on('open', () => {
-    console.log('WebSocket connection to echo.websocket.org successful');
-    ws.send('Test message');
-  });
-  ws.on('message', (data) => {
-    console.log(`Received from echo.websocket.org: ${data}`);
-    ws.close();
-    res.json({ message: `WebSocket test successful: ${data}` });
-  });
-  ws.on('error', (err) => {
-    console.error(`WebSocket error: ${err.message}`);
-    res.status(500).json({ error: `WebSocket connection failed: ${err.message}` });
+  const conn = new Client();
+  conn.on('ready', () => {
+    console.log('SSH connection established');
+    conn.exec('ls -l', (err, stream) => {
+      if (err) throw err;
+      stream.on('close', (code, signal) => {
+        console.log(`Stream closed with code ${code} and signal ${signal}`);
+        conn.end();
+      }).on('data', (data) => {
+        console.log(`STDOUT: ${data}`);
+        res.json({ message: `SSH command executed successfully: ${data.toString()}` });
+      }).stderr.on('data', (data) => {
+        console.log(`STDERR: ${data}`);
+        res.status(500).json({ error: `SSH command execution failed: ${data.toString()}` });
+      });
+    });
+  }).on('error', (err) => {
+    console.error(`SSH connection error: ${err.message}`);
+    res.status(500).json({ error: `SSH connection failed: ${err.message}` });
+  }).connect({
+    host,
+    port: 22,
+    username,
+    password
   });
 });
 
