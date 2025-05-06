@@ -33,5 +33,5 @@ app.post('/connect-ssh', (req, res) => {
     res.status(500).json({ error: `WebSocket connection failed: ${err.message}` });
   });
 });
-
+// Force update for Vercel sync test
 module.exports = app;
