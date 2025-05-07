@@ -17,7 +17,11 @@ app.get('/ssh', (req, res) => {
 app.post('/connect-ssh', (req, res) => {
   const { host, username, password } = req.body;
   console.log(`Received /connect-ssh request with host: ${host}, username: ${username}`);
+<<<<<<< HEAD
   if (!host || !username ||!password) {
+=======
+  if (!host || !username || !password) {
+>>>>>>> 723bd99b9c15746fcf5b85c3de0cafd2f8ea14d2
     return res.status(400).json({ error: 'Missing host, username or password' });
   }
 
@@ -39,6 +43,7 @@ app.post('/connect-ssh', (req, res) => {
     });
   }).on('error', (err) => {
     console.error(`SSH connection error: ${err.message}`);
+<<<<<<< HEAD
     res.status(500).json({ error: `SSH connection failed: ${err.message}`, details: err.toString() });
   }).connect({
     host,
@@ -69,6 +74,8 @@ app.post('/connect-ssh', (req, res) => {
     });
   }).on('error', (err) => {
     console.error(`SSH connection error: ${err.message}`);
+=======
+>>>>>>> 723bd99b9c15746fcf5b85c3de0cafd2f8ea14d2
     res.status(500).json({ error: `SSH connection failed: ${err.message}` });
   }).connect({
     host,
