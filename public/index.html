@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSHweb</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+    h1 { color: #333; }
+    .input { margin: 10px; padding: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Welcome to SSHweb</h1>
+  <p>Web-based SSH client</p>
+  <div>
+    <input class="input" id="host" placeholder="Host (e.g., s16.serv00.net)" />
+    <input class="input" id="username" placeholder="Username" />
+    <input class="input" id="password" type="password" placeholder="Password" />
+    <button onclick="connectSSH()">Connect to SSH</button>
+  </div>
+  <pre id="output"></pre>
+  <script>
+    function connectSSH() {
+      let host = document.getElementById('host').value;
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      host = host.replace(/^https?:\/\//, '');
+
+      fetch('/connect-ssh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host, username, password })
+      })
+        .then(res => {
+          if (!res.ok) {
+            return res.text().then(text => { throw new Error(text || 'Server error') });
+          }
+          return res.json();
+        })
+        .then(data => {
+          document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(err => {
+          document.getElementById('output').textContent = `Error: ${err.message}`;
+          console.error('Error:', err);
+        });
+    }
+  </script>
+</body>
+</html>
