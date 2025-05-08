@@ -15,6 +15,10 @@
     .input { width: 200px; margin: 10px; padding: 5px; background: #000; color: #0f0; border: 1px solid #0f0; }
     button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 5px 10px; cursor: pointer; }
     button:hover { background: #0f0; color: #000; }
+    .cursor { animation: blink 1s step-end infinite; }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -30,7 +34,7 @@
   </div>
   <div id="terminal-section">
     <div id="output"></div>
-    <div><span id="prompt"></span><input id="command" /></div>
+    <div><span id="prompt"></span><input id="command" /><span class="cursor">_</span></div>
   </div>
   <script>
     let connectionDetails = {};
@@ -60,7 +64,7 @@
         .then(data => {
           document.getElementById('auth-section').style.display = 'none';
           document.getElementById('terminal-section').style.display = 'block';
-          const prompt = `${connectionDetails.username}@${connectionDetails.host}:~$ `;
+          const prompt = `${connectionDetails.username}@${connectionDetails.host.split('.')[0]}:~$ `;
           document.getElementById('prompt').textContent = prompt;
           appendOutput(`${data.message}\n${prompt}`);
           const commandInput = document.getElementById('command');
@@ -77,7 +81,7 @@
     function handleCommand(e) {
       if (e.key === 'Enter') {
         const command = e.target.value.trim();
-        const prompt = `${connectionDetails.username}@${connectionDetails.host}:~$ `;
+        const prompt = `${connectionDetails.username}@${connectionDetails.host.split('.')[0]}:~$ `;
         if (command) {
           commandHistory.push(command);
           historyIndex = commandHistory.length;
