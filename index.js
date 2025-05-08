@@ -15,17 +15,17 @@ app.get('/ssh', (req, res) => {
 });
 
 app.post('/connect-ssh', (req, res) => {
-  const { host, username, password } = req.body;
-  console.log(`Received /connect-ssh request with host: ${host}, username: ${username}`);
+  const { host, username, password, command } = req.body;
+  console.log(`Received /connect-ssh request with host: ${host}, username: ${username}, command: ${command || 'ls -l'}`);
 
   if (!host || !username || !password) {
-    return res.status(400).json({ error: 'Missing host, username or password' });
+    return res.status(400).json({ error: 'Missing host, username, or password' });
   }
 
   const conn = new Client();
   conn.on('ready', () => {
     console.log('SSH connection established');
-    conn.exec('ls -l', (err, stream) => {
+    conn.exec(command || 'ls -l', (err, stream) => {
       if (err) {
         console.error(`Exec error: ${err.message}`);
         conn.end();
