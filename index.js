@@ -28,21 +28,25 @@ app.post('/connect-ssh', (req, res) => {
     conn.exec('ls -l', (err, stream) => {
       if (err) {
         console.error(`Exec error: ${err.message}`);
+        conn.end();
         return res.status(500).json({ error: `Command execution failed: ${err.message}` });
       }
-      stream.on('close', (code, signal) => {
-        console.log(`Stream closed with code ${code} and signal ${signal}`);
-        conn.end();
-      }).on('data', (data) => {
-        console.log(`STDOUT: ${data}`);
-        res.json({ message: `SSH command executed successfully: ${data.toString()}` });
+      let output = '';
+      stream.on('data', (data) => {
+        output += data;
       }).stderr.on('data', (data) => {
         console.error(`STDERR: ${data}`);
-        res.status(500).json({ error: `SSH command execution failed: ${data.toString()}` });
+        conn.end();
+        return res.status(500).json({ error: `SSH command execution failed: ${data.toString()}` });
+      }).on('close', (code, signal) => {
+        console.log(`Stream closed with code ${code} and signal ${signal}`);
+        conn.end();
+        res.json({ message: `SSH command executed successfully: ${output}` });
       });
     });
   }).on('error', (err) => {
     console.error(`SSH connection error: ${err.message}, stack: ${err.stack}`);
+    conn.end();
     res.status(500).json({ error: `SSH connection failed: ${err.message}` });
   }).on('keyboard-interactive', (name, instructions, instructionsLang, prompts, finish) => {
     console.log('Keyboard-interactive authentication requested');
