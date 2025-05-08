@@ -14,7 +14,7 @@ app.get('/ssh', (req, res) => {
   res.json({ message: 'SSH connection endpoint' });
 });
 
-app.post('/connect-ssh', (req, res) => {
+aapp.post('/connect-ssh', (req, res) => {
   const { host, username, password } = req.body;
   console.log(`Received /connect-ssh request with host: ${host}, username: ${username}`);
 
@@ -44,12 +44,17 @@ app.post('/connect-ssh', (req, res) => {
   }).on('error', (err) => {
     console.error(`SSH connection error: ${err.message}, stack: ${err.stack}`);
     res.status(500).json({ error: `SSH connection failed: ${err.message}` });
+  }).on('keyboard-interactive', (name, instructions, instructionsLang, prompts, finish) => {
+    console.log('Keyboard-interactive authentication requested');
+    finish([password]);
   }).connect({
     host,
     port: 22,
     username,
     password,
-    readyTimeout: 30000
+    tryKeyboard: true,
+    readyTimeout: 30000,
+    debug: (msg) => console.log(`SSH Debug: ${msg}`)
   });
 });
 
