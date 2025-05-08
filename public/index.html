@@ -6,12 +6,13 @@
   <title>SSHweb</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-    h1 { color: #333; }
-    .input { margin: 10px; padding: 5px; width: 200px; }
-    pre { text-align: left; display: inline-block; }
+    body { font-family: monospace; text-align: center; padding: 20px; background: #000; color: #0f0; }
+    h1 { color: #0f0; }
+    .input { margin: 10px; padding: 5px; width: 200px; background: #000; color: #0f0; border: 1px solid #0f0; }
     #auth-section { display: block; }
-    #command-section { display: none; }
+    #terminal-section { display: none; }
+    #output { text-align: left; width: 80%; margin: 0 auto; height: 400px; overflow-y: auto; border: 1px solid #0f0; padding: 10px; }
+    #command { width: 80%; background: #000; color: #0f0; border: 1px solid #0f0; }
   </style>
 </head>
 <body>
@@ -25,13 +26,10 @@
       <button onclick="connectSSH()">Connect to SSH</button>
     </div>
   </div>
-  <div id="command-section">
-    <h1>SSH Command Interface</h1>
-    <div>
-      <input class="input" id="command" placeholder="Enter command (e.g., ls -l)" style="width: 300px;" />
-      <button onclick="executeCommand()">Run Command</button>
-    </div>
-    <pre id="output"></pre>
+  <div id="terminal-section">
+    <h1>SSH Terminal</h1>
+    <div id="output"></div>
+    <input class="input" id="command" placeholder="Enter command" autofocus />
   </div>
   <script>
     let connectionDetails = {};
@@ -58,8 +56,9 @@
         })
         .then(data => {
           document.getElementById('auth-section').style.display = 'none';
-          document.getElementById('command-section').style.display = 'block';
-          document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+          document.getElementById('terminal-section').style.display = 'block';
+          appendOutput(`$ whoami\n${data.message.split(': ')[1]}`);
+          document.getElementById('command').addEventListener('keypress', handleCommand);
         })
         .catch(err => {
           document.getElementById('output').textContent = `Error: ${err.message}`;
@@ -67,27 +66,39 @@
         });
     }
 
-    function executeCommand() {
-      const command = document.getElementById('command').value;
+    function handleCommand(e) {
+      if (e.key === 'Enter') {
+        const command = e.target.value.trim();
+        if (command) {
+          appendOutput(`$ ${command}`);
+          fetch('/connect-ssh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...connectionDetails, command })
+          })
+            .then(res => {
+              if (!res.ok) {
+                return res.text().then(text => { throw new Error(text || 'Server error') });
+              }
+              return res.json();
+            })
+            .then(data => {
+              appendOutput(data.message.split(': ')[1] || data.message);
+              e.target.value = '';
+            })
+            .catch(err => {
+              appendOutput(`Error: ${err.message}`);
+              console.error('Error:', err);
+              e.target.value = '';
+            });
+        }
+      }
+    }
 
-      fetch('/connect-ssh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...connectionDetails, command })
-      })
-        .then(res => {
-          if (!res.ok) {
-            return res.text().then(text => { throw new Error(text || 'Server error') });
-          }
-          return res.json();
-        })
-        .then(data => {
-          document.getElementById('output').textContent = JSON.stringify(data, null, 2);
-        })
-        .catch(err => {
-          document.getElementById('output').textContent = `Error: ${err.message}`;
-          console.error('Error:', err);
-        });
+    function appendOutput(text) {
+      const output = document.getElementById('output');
+      output.innerHTML += `${text}\n`;
+      output.scrollTop = output.scrollHeight;
     }
   </script>
 </body>
