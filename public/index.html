@@ -10,32 +10,70 @@
     h1 { color: #333; }
     .input { margin: 10px; padding: 5px; width: 200px; }
     pre { text-align: left; display: inline-block; }
+    #auth-section { display: block; }
+    #command-section { display: none; }
   </style>
 </head>
 <body>
-  <h1>Welcome to SSHweb</h1>
-  <p>Web-based SSH client</p>
-  <div>
-    <input class="input" id="host" placeholder="Host (e.g., s16.serv00.net)" />
-    <input class="input" id="username" placeholder="Username" />
-    <input class="input" id="password" type="password" placeholder="Password" />
-    <input class="input" id="command" placeholder="Command (e.g., ls -l)" />
-    <button onclick="connectSSH()">Connect to SSH</button>
+  <div id="auth-section">
+    <h1>Welcome to SSHweb</h1>
+    <p>Web-based SSH client</p>
+    <div>
+      <input class="input" id="host" placeholder="Host (e.g., s16.serv00.net)" />
+      <input class="input" id="username" placeholder="Username" />
+      <input class="input" id="password" type="password" placeholder="Password" />
+      <button onclick="connectSSH()">Connect to SSH</button>
+    </div>
   </div>
-  <pre id="output"></pre>
+  <div id="command-section">
+    <h1>SSH Command Interface</h1>
+    <div>
+      <input class="input" id="command" placeholder="Enter command (e.g., ls -l)" style="width: 300px;" />
+      <button onclick="executeCommand()">Run Command</button>
+    </div>
+    <pre id="output"></pre>
+  </div>
   <script>
+    let connectionDetails = {};
+
     function connectSSH() {
       let host = document.getElementById('host').value;
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
-      const command = document.getElementById('command').value;
 
       host = host.replace(/^https?:\/\//, '');
+
+      connectionDetails = { host, username, password };
 
       fetch('/connect-ssh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ host, username, password, command })
+        body: JSON.stringify({ ...connectionDetails, command: 'whoami' })
+      })
+        .then(res => {
+          if (!res.ok) {
+            return res.text().then(text => { throw new Error(text || 'Server error') });
+          }
+          return res.json();
+        })
+        .then(data => {
+          document.getElementById('auth-section').style.display = 'none';
+          document.getElementById('command-section').style.display = 'block';
+          document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(err => {
+          document.getElementById('output').textContent = `Error: ${err.message}`;
+          console.error('Error:', err);
+        });
+    }
+
+    function executeCommand() {
+      const command = document.getElementById('command').value;
+
+      fetch('/connect-ssh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...connectionDetails, command })
       })
         .then(res => {
           if (!res.ok) {
