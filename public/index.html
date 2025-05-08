@@ -11,7 +11,7 @@
     .input { margin: 10px; padding: 5px; width: 200px; background: #000; color: #0f0; border: 1px solid #0f0; }
     #auth-section { display: block; }
     #terminal-section { display: none; }
-    #output { text-align: left; width: 80%; margin: 0 auto; height: 400px; overflow-y: auto; border: 1px solid #0f0; padding: 10px; }
+    #output { text-align: left; width: 80%; margin: 0 auto; height: 400px; overflow-y: auto; border: 1px solid #0f0; padding: 10px; white-space: pre-wrap; }
     #command { width: 80%; background: #000; color: #0f0; border: 1px solid #0f0; }
   </style>
 </head>
@@ -33,6 +33,8 @@
   </div>
   <script>
     let connectionDetails = {};
+    let commandHistory = [];
+    let historyIndex = -1;
 
     function connectSSH() {
       let host = document.getElementById('host').value;
@@ -57,11 +59,12 @@
         .then(data => {
           document.getElementById('auth-section').style.display = 'none';
           document.getElementById('terminal-section').style.display = 'block';
-          appendOutput(`$ whoami\n${data.message.split(': ')[1]}`);
+          appendOutput(`$ whoami\n${data.message}`);
           document.getElementById('command').addEventListener('keypress', handleCommand);
+          document.getElementById('command').addEventListener('keydown', handleHistory);
         })
         .catch(err => {
-          document.getElementById('output').textContent = `Error: ${err.message}`;
+          appendOutput(`Error: ${err.message}`);
           console.error('Error:', err);
         });
     }
@@ -70,6 +73,8 @@
       if (e.key === 'Enter') {
         const command = e.target.value.trim();
         if (command) {
+          commandHistory.push(command);
+          historyIndex = commandHistory.length;
           appendOutput(`$ ${command}`);
           fetch('/connect-ssh', {
             method: 'POST',
@@ -83,7 +88,7 @@
               return res.json();
             })
             .then(data => {
-              appendOutput(data.message.split(': ')[1] || data.message);
+              appendOutput(data.message || data.error);
               e.target.value = '';
             })
             .catch(err => {
@@ -91,7 +96,25 @@
               console.error('Error:', err);
               e.target.value = '';
             });
+        } else {
+          e.target.value = '';
         }
+      }
+    }
+
+    function handleHistory(e) {
+      if (e.key === 'ArrowUp' && historyIndex > 0) {
+        e.preventDefault();
+        historyIndex--;
+        document.getElementById('command').value = commandHistory[historyIndex] || '';
+      } else if (e.key === 'ArrowDown' && historyIndex < commandHistory.length - 1) {
+        e.preventDefault();
+        historyIndex++;
+        document.getElementById('command').value = commandHistory[historyIndex] || '';
+      } else if (e.key === 'ArrowDown' && historyIndex === commandHistory.length - 1) {
+        e.preventDefault();
+        historyIndex = commandHistory.length;
+        document.getElementById('command').value = '';
       }
     }
 

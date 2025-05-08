@@ -22,10 +22,14 @@ app.post('/connect-ssh', (req, res) => {
     return res.status(400).json({ error: 'Missing host, username, or password' });
   }
 
+  if (!command || command.trim() === '') {
+    return res.status(400).json({ error: 'No command provided' });
+  }
+
   const conn = new Client();
   conn.on('ready', () => {
     console.log('SSH connection established');
-    conn.exec(command || 'ls -l', (err, stream) => {
+    conn.exec(command, (err, stream) => {
       if (err) {
         console.error(`Exec error: ${err.message}`);
         conn.end();
@@ -41,7 +45,7 @@ app.post('/connect-ssh', (req, res) => {
       }).on('close', (code, signal) => {
         console.log(`Stream closed with code ${code} and signal ${signal}`);
         conn.end();
-        res.json({ message: `SSH command executed successfully: ${output}` });
+        res.json({ message: output.trim() });
       });
     });
   }).on('error', (err) => {
