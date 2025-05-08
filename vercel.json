@@ -16,6 +16,11 @@
       "dest": "/public/index.html"
     },
     {
+      "src": "/connect-ssh",
+      "methods": ["POST"],
+      "dest": "/index.js"
+    },
+    {
       "src": "/ssh",
       "dest": "/index.js"
     },
