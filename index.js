@@ -1,6 +1,8 @@
 const express = require('express');
 const { Client } = require('ssh2');
+const AnsiToHtml = require('ansi-to-html');
 const app = express();
+const ansiConverter = new AnsiToHtml();
 
 app.use(express.static('public'));
 app.use(express.json());
@@ -29,7 +31,7 @@ app.post('/connect-ssh', (req, res) => {
   const conn = new Client();
   conn.on('ready', () => {
     console.log('SSH connection established');
-    conn.exec(command, (err, stream) => {
+    conn.exec(command, { pty: true }, (err, stream) => {
       if (err) {
         console.error(`Exec error: ${err.message}`);
         conn.end();
@@ -44,7 +46,8 @@ app.post('/connect-ssh', (req, res) => {
       }).on('close', (code, signal) => {
         console.log(`Stream closed with code ${code} and signal ${signal}`);
         conn.end();
-        res.json({ message: output.trim() });
+        const htmlOutput = ansiConverter.toHtml(output.trim());
+        res.json({ message: htmlOutput });
       });
     });
   }).on('error', (err) => {
