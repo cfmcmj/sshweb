@@ -14,7 +14,7 @@ app.get('/ssh', (req, res) => {
   res.json({ message: 'SSH connection endpoint' });
 });
 
-aapp.post('/connect-ssh', (req, res) => {
+app.post('/connect-ssh', (req, res) => {
   const { host, username, password } = req.body;
   console.log(`Received /connect-ssh request with host: ${host}, username: ${username}`);
 
