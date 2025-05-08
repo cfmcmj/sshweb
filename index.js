@@ -16,7 +16,7 @@ app.get('/ssh', (req, res) => {
 
 app.post('/connect-ssh', (req, res) => {
   const { host, username, password, command } = req.body;
-  console.log(`Received /connect-ssh request with host: ${host}, username: ${username}, command: ${command || 'cat /etc/motd'}`);
+  console.log(`Received /connect-ssh request with host: ${host}, username: ${username}, command: ${command || 'bash -l -c "cat /etc/motd || true"'}`);
 
   if (!host || !username || !password) {
     return res.status(400).json({ error: 'Missing host, username, or password' });
@@ -40,8 +40,7 @@ app.post('/connect-ssh', (req, res) => {
         output += data;
       }).stderr.on('data', (data) => {
         console.error(`STDERR: ${data}`);
-        conn.end();
-        return res.status(500).json({ error: `SSH command execution failed: ${data.toString()}` });
+        output += data; // Include stderr for MOTD or errors
       }).on('close', (code, signal) => {
         console.log(`Stream closed with code ${code} and signal ${signal}`);
         conn.end();

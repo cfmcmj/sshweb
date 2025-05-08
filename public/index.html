@@ -6,14 +6,13 @@
   <title>SSHweb</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
   <style>
-    body { font-family: 'Courier New', monospace; margin: 0; padding: 10px; background: #000; color: #0f0; }
-    .input { padding: 5px; background: #000; color: #0f0; border: 1px solid #0f0; }
+    body { font-family: 'Courier New', monospace; margin: 0; padding: 0; background: #000; color: #0f0; }
     #auth-section { text-align: center; padding: 50px; }
     #terminal-section { display: none; }
-    #output { text-align: left; width: 95%; margin: 0 auto; height: 80vh; overflow-y: auto; padding: 10px; white-space: pre-wrap; }
-    #command { width: 95%; background: #000; color: #0f0; border: none; outline: none; font-family: 'Courier New', monospace; }
+    #output { text-align: left; width: 100%; height: 95vh; overflow-y: auto; padding: 10px; white-space: pre-wrap; box-sizing: border-box; }
+    #command { width: calc(100% - 20px); background: #000; color: #0f0; border: none; outline: none; font-family: 'Courier New', monospace; padding: 5px 10px; }
     #prompt { display: inline; color: #0f0; }
-    #auth-section .input { width: 200px; margin: 10px; }
+    .input { width: 200px; margin: 10px; padding: 5px; background: #000; color: #0f0; border: 1px solid #0f0; }
     button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 5px 10px; cursor: pointer; }
     button:hover { background: #0f0; color: #000; }
   </style>
@@ -50,7 +49,7 @@
       fetch('/connect-ssh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...connectionDetails, command: 'whoami' })
+        body: JSON.stringify({ ...connectionDetails, command: 'bash -l -c "cat /etc/motd || true"' })
       })
         .then(res => {
           if (!res.ok) {
@@ -63,12 +62,12 @@
           document.getElementById('terminal-section').style.display = 'block';
           const prompt = `${connectionDetails.username}@${connectionDetails.host}:~$ `;
           document.getElementById('prompt').textContent = prompt;
-          appendOutput(`${prompt}whoami\n${data.message}`);
+          appendOutput(`${data.message}\n${prompt}`);
           document.getElementById('command').addEventListener('keypress', handleCommand);
           document.getElementById('command').addEventListener('keydown', handleHistory);
         })
         .catch(err => {
-          appendOutput(`Error: ${err.message}`);
+          appendOutput(`Error: ${err.message}\n`);
           console.error('Error:', err);
         });
     }
@@ -76,11 +75,11 @@
     function handleCommand(e) {
       if (e.key === 'Enter') {
         const command = e.target.value.trim();
+        const prompt = `${connectionDetails.username}@${connectionDetails.host}:~$ `;
         if (command) {
           commandHistory.push(command);
           historyIndex = commandHistory.length;
-          const prompt = `${connectionDetails.username}@${connectionDetails.host}:~$ `;
-          appendOutput(`${prompt}${command}`);
+          appendOutput(`${prompt}${command}\n`);
           fetch('/connect-ssh', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -93,17 +92,17 @@
               return res.json();
             })
             .then(data => {
-              appendOutput(data.message || data.error);
+              appendOutput(`${data.message || data.error}\n${prompt}`);
               e.target.value = '';
             })
             .catch(err => {
-              appendOutput(`Error: ${err.message}`);
+              appendOutput(`Error: ${err.message}\n${prompt}`);
               console.error('Error:', err);
               e.target.value = '';
             });
         } else {
+          appendOutput(`${prompt}`);
           e.target.value = '';
-          appendOutput(`${connectionDetails.username}@${connectionDetails.host}:~$ `);
         }
       }
     }
@@ -126,7 +125,7 @@
 
     function appendOutput(text) {
       const output = document.getElementById('output');
-      output.innerHTML += `${text}\n`;
+      output.innerHTML += text;
       output.scrollTop = output.scrollHeight;
     }
   </script>
