@@ -21,6 +21,7 @@
     }
     .command-line { display: flex; align-items: center; width: 100%; }
     #command { flex-grow: 1; }
+    .loading { display: none; color: #ff0; }
   </style>
 </head>
 <body>
@@ -40,6 +41,7 @@
       <span id="prompt"></span>
       <input id="command" />
       <span class="cursor">_</span>
+      <span class="loading"> [Loading...]</span>
     </div>
   </div>
   <script>
@@ -56,6 +58,7 @@
 
       connectionDetails = { host, username, password };
 
+      showLoading(true);
       fetch('/connect-ssh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,6 +84,10 @@
         .catch(err => {
           appendOutput(`Error: ${err.message}\n`);
           console.error('Error:', err);
+        })
+        .finally(() => {
+          showLoading(false);
+          document.getElementById('command').focus();
         });
     }
 
@@ -92,6 +99,7 @@
           commandHistory.push(command);
           historyIndex = commandHistory.length;
           appendOutput(`${prompt}${command}\n`);
+          showLoading(true);
           fetch('/connect-ssh', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -106,12 +114,14 @@
             .then(data => {
               appendOutput(`${data.message || data.error}\n`);
               e.target.value = '';
-              e.target.focus();
             })
             .catch(err => {
               appendOutput(`Error: ${err.message}\n`);
               console.error('Error:', err);
               e.target.value = '';
+            })
+            .finally(() => {
+              showLoading(false);
               e.target.focus();
             });
         } else {
@@ -140,8 +150,16 @@
 
     function appendOutput(text) {
       const output = document.getElementById('output');
-      output.innerHTML += text;
+      const fragment = document.createDocumentFragment();
+      const div = document.createElement('div');
+      div.innerHTML = text;
+      fragment.appendChild(div);
+      output.appendChild(fragment);
       output.scrollTop = output.scrollHeight;
+    }
+
+    function showLoading(show) {
+      document.querySelector('.loading').style.display = show ? 'inline' : 'none';
     }
   </script>
 </body>

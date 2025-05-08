@@ -28,10 +28,13 @@ app.post('/connect-ssh', (req, res) => {
     return res.status(400).json({ error: 'No command provided' });
   }
 
+  // If the command is 'ls', append '--color=auto' to enable colored output
+  const finalCommand = command === 'ls' ? 'ls --color=auto' : command;
+
   const conn = new Client();
   conn.on('ready', () => {
     console.log('SSH connection established');
-    conn.exec(command, { pty: true }, (err, stream) => {
+    conn.exec(finalCommand, { pty: true }, (err, stream) => {
       if (err) {
         console.error(`Exec error: ${err.message}`);
         conn.end();
