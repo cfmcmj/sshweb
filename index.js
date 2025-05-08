@@ -16,7 +16,7 @@ app.get('/ssh', (req, res) => {
 
 app.post('/connect-ssh', (req, res) => {
   const { host, username, password, command } = req.body;
-  console.log(`Received /connect-ssh request with host: ${host}, username: ${username}, command: ${command || 'ls -l'}`);
+  console.log(`Received /connect-ssh request with host: ${host}, username: ${username}, command: ${command || 'cat /etc/motd'}`);
 
   if (!host || !username || !password) {
     return res.status(400).json({ error: 'Missing host, username, or password' });
