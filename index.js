@@ -3,17 +3,16 @@ const { Client } = require('ssh2');
 const AnsiToHtml = require('ansi-to-html');
 const app = express();
 const ansiConverter = new AnsiToHtml({
-  fg: '#FFF', // Default foreground color
-  bg: '#000', // Default background color
-  newline: true, // Preserve newlines
-  escapeXML: true, // Ensure HTML-safe output
+  fg: '#FFF',
+  bg: '#000',
+  newline: true,
+  escapeXML: true,
 });
 
 app.use(express.static('public'));
 app.use(express.json());
 
-// Store the current working directory for each session
-let currentWorkingDir = '/usr/home/jiezi'; // Default starting directory
+let currentWorkingDir = '/usr/home/jiezi';
 
 app.get('/', (req, res) => {
   res.sendFile('index.html', { root: 'public' });
@@ -36,22 +35,20 @@ app.post('/connect-ssh', (req, res) => {
     return res.status(400).json({ error: 'No command provided' });
   }
 
-  // Handle commands
   let finalCommand = command;
   if (command.startsWith('cd ')) {
     const newDir = command.slice(3).trim();
-    // Resolve relative paths manually since each command runs in a new session
     let targetDir = newDir;
     if (!newDir.startsWith('/')) {
-      targetDir = `${currentWorkingDir}/${newDir}`; // Convert relative to absolute
+      targetDir = `${currentWorkingDir}/${newDir}`;
     }
-    finalCommand = `cd ${targetDir} && pwd`; // Update directory and return new path
+    finalCommand = `cd ${targetDir} && pwd`;
   } else if (command === 'ls') {
-    finalCommand = 'ls --color=auto'; // Ensure ls outputs colors
+    finalCommand = 'LS_COLORS="di=34:ln=35:ex=32:fi=37" ls --color=auto'; // Blue dirs, purple links, green execs, white files
   } else if (command === 'pwd') {
-    finalCommand = 'pwd'; // Just return the current directory
+    finalCommand = 'pwd';
   } else {
-    finalCommand = `cd ${currentWorkingDir} && ${command}`; // Run command in the current directory
+    finalCommand = `cd ${currentWorkingDir} && ${command}`;
   }
 
   const conn = new Client();
@@ -68,23 +65,22 @@ app.post('/connect-ssh', (req, res) => {
         output += data;
       }).stderr.on('data', (data) => {
         console.error(`STDERR: ${data}`);
-        output += data; // Include stderr for MOTD or errors
+        output += data;
       }).on('close', (code, signal) => {
         console.log(`Stream closed with code ${code} and signal ${signal}`);
-        console.log(`Raw output (hex): ${Buffer.from(output).toString('hex')}`); // Debug raw output in hex to see ANSI codes
-        console.log(`Raw output (string): ${JSON.stringify(output)}`); // Debug raw output as string
-        // If the command was a 'cd', update the current working directory
+        console.log(`Raw output (hex): ${Buffer.from(output).toString('hex')}`);
+        console.log(`Raw output (string): ${JSON.stringify(output)}`);
         let responseMessage = output.trim();
         if (command.startsWith('cd ')) {
           if (code === 0) {
-            currentWorkingDir = responseMessage; // Update directory on success
-            responseMessage = ''; // No output for successful cd
+            currentWorkingDir = responseMessage;
+            responseMessage = '';
           } else {
             responseMessage = `cd: ${command.slice(3).trim()}: No such file or directory`;
           }
         }
         const htmlOutput = ansiConverter.toHtml(responseMessage);
-        console.log(`HTML output: ${htmlOutput}`); // Debug HTML output
+        console.log(`HTML output: ${htmlOutput}`);
         conn.end();
         res.json({ message: htmlOutput });
       });
