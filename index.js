@@ -7,10 +7,11 @@ const ansiConverter = new AnsiToHtml({
   bg: '#000',
   newline: true,
   escapeXML: true,
+  stream: true, // Process output as a stream to avoid truncation
   colors: {
-    0: '#000',  // Black
-    1: '#FFF',  // Bold/White (for regular text)
-    30: '#000', // Black
+    0: '#000',     // Black
+    1: '#FFF',     // Bold/White
+    30: '#000',    // Black
     31: '#FF0000', // Red
     32: '#00FF00', // Green
     34: '#0000FF', // Blue
@@ -54,7 +55,8 @@ app.post('/connect-ssh', (req, res) => {
     }
     finalCommand = `cd ${targetDir} && pwd`;
   } else if (command === 'ls') {
-    finalCommand = 'export TERM=xterm-256color CLICOLOR=1 && LS_COLORS="di=34:ln=35:ex=32:fi=37;1" ls -G';
+    // Simplify for FreeBSD: Use CLICOLOR_FORCE to ensure colors, and set basic LS_COLORS
+    finalCommand = 'export TERM=xterm-256color CLICOLOR=1 CLICOLOR_FORCE=1 && LS_COLORS="di=34:ln=35:ex=32:fi=1;37" ls -G';
   } else if (command === 'pwd') {
     finalCommand = 'pwd';
   } else {
@@ -72,10 +74,10 @@ app.post('/connect-ssh', (req, res) => {
       }
       let output = '';
       stream.on('data', (data) => {
-        output += data;
+        output += data.toString('utf8'); // Ensure proper encoding
       }).stderr.on('data', (data) => {
         console.error(`STDERR: ${data}`);
-        output += data;
+        output += data.toString('utf8');
       }).on('close', (code, signal) => {
         console.log(`Stream closed with code ${code} and signal ${signal}`);
         console.log(`Raw output (hex): ${Buffer.from(output).toString('hex')}`);
