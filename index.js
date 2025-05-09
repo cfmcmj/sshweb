@@ -7,7 +7,7 @@ const ansiConverter = new AnsiToHtml({
   bg: '#000',
   newline: true,
   escapeXML: true,
-  stream: true, // Process output as a stream to avoid truncation
+  stream: true,
   colors: {
     0: '#000',     // Black
     1: '#FFF',     // Bold/White
@@ -16,7 +16,7 @@ const ansiConverter = new AnsiToHtml({
     32: '#00FF00', // Green
     34: '#0000FF', // Blue
     35: '#FF00FF', // Purple
-    37: '#FFFFFF', // White for regular files
+    37: '#FFFFFF', // White
   },
 });
 
@@ -55,8 +55,8 @@ app.post('/connect-ssh', (req, res) => {
     }
     finalCommand = `cd ${targetDir} && pwd`;
   } else if (command === 'ls') {
-    // Simplify for FreeBSD: Use CLICOLOR_FORCE to ensure colors, and set basic LS_COLORS
-    finalCommand = 'export TERM=xterm-256color CLICOLOR=1 CLICOLOR_FORCE=1 && LS_COLORS="di=34:ln=35:ex=32:fi=1;37" ls -G';
+    // Use explicit color settings and ensure reset
+    finalCommand = 'export TERM=xterm-256color CLICOLOR=1 CLICOLOR_FORCE=1 && LS_COLORS="di=34:ln=35:ex=32:fi=37" ls -G';
   } else if (command === 'pwd') {
     finalCommand = 'pwd';
   } else {
@@ -74,7 +74,8 @@ app.post('/connect-ssh', (req, res) => {
       }
       let output = '';
       stream.on('data', (data) => {
-        output += data.toString('utf8'); // Ensure proper encoding
+        output += data.toString('utf8');
+        console.log(`Partial data: ${data.toString('utf8')}`); // Log partial data
       }).stderr.on('data', (data) => {
         console.error(`STDERR: ${data}`);
         output += data.toString('utf8');
