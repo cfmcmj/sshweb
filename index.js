@@ -7,6 +7,9 @@ const ansiConverter = new AnsiToHtml();
 app.use(express.static('public'));
 app.use(express.json());
 
+// Store the current working directory for each session (simulated with a simple variable for now)
+let currentWorkingDir = '/usr/home/jiezi'; // Default starting directory
+
 app.get('/', (req, res) => {
   res.sendFile('index.html', { root: 'public' });
 });
@@ -28,8 +31,18 @@ app.post('/connect-ssh', (req, res) => {
     return res.status(400).json({ error: 'No command provided' });
   }
 
-  // If the command is 'ls', append '--color=auto' to enable colored output
-  const finalCommand = command === 'ls' ? 'ls --color=auto' : command;
+  // Handle 'cd' commands to update the working directory
+  let finalCommand = command;
+  if (command.startsWith('cd ')) {
+    const newDir = command.slice(3).trim();
+    finalCommand = `cd ${newDir} && pwd`; // Update directory and return new path
+  } else if (command === 'ls') {
+    finalCommand = 'ls --color=auto'; // Ensure ls outputs colors
+  } else if (command === 'pwd') {
+    finalCommand = 'pwd'; // Just return the current directory
+  } else {
+    finalCommand = `cd ${currentWorkingDir} && ${command}`; // Run command in the current directory
+  }
 
   const conn = new Client();
   conn.on('ready', () => {
@@ -48,8 +61,14 @@ app.post('/connect-ssh', (req, res) => {
         output += data; // Include stderr for MOTD or errors
       }).on('close', (code, signal) => {
         console.log(`Stream closed with code ${code} and signal ${signal}`);
-        conn.end();
+        console.log(`Raw output: ${output}`); // Debug raw output
+        // If the command was a 'cd', update the current working directory
+        if (command.startsWith('cd ')) {
+          currentWorkingDir = output.trim();
+          output = ''; // No output for cd, just update the directory
+        }
         const htmlOutput = ansiConverter.toHtml(output.trim());
+        conn.end();
         res.json({ message: htmlOutput });
       });
     });

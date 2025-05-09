@@ -48,6 +48,7 @@
     let connectionDetails = {};
     let commandHistory = [];
     let historyIndex = -1;
+    let currentDir = '/usr/home/jiezi'; // Default starting directory
 
     function connectSSH() {
       let host = document.getElementById('host').value;
@@ -73,8 +74,7 @@
         .then(data => {
           document.getElementById('auth-section').style.display = 'none';
           document.getElementById('terminal-section').style.display = 'block';
-          const prompt = `${connectionDetails.username}@${connectionDetails.host.split('.')[0]}:~$ `;
-          document.getElementById('prompt').textContent = prompt;
+          updatePrompt();
           appendOutput(`${data.message}\n`);
           const commandInput = document.getElementById('command');
           commandInput.focus();
@@ -94,11 +94,10 @@
     function handleCommand(e) {
       if (e.key === 'Enter') {
         const command = e.target.value.trim();
-        const prompt = `${connectionDetails.username}@${connectionDetails.host.split('.')[0]}:~$ `;
         if (command) {
           commandHistory.push(command);
           historyIndex = commandHistory.length;
-          appendOutput(`${prompt}${command}\n`);
+          appendOutput(`${document.getElementById('prompt').textContent}${command}\n`);
           showLoading(true);
           fetch('/connect-ssh', {
             method: 'POST',
@@ -112,12 +111,18 @@
               return res.json();
             })
             .then(data => {
+              if (command.startsWith('cd ')) {
+                currentDir = data.message || currentDir; // Update directory if cd command
+                data.message = ''; // Suppress pwd output
+              }
               appendOutput(`${data.message || data.error}\n`);
+              updatePrompt();
               e.target.value = '';
             })
             .catch(err => {
               appendOutput(`Error: ${err.message}\n`);
               console.error('Error:', err);
+              updatePrompt();
               e.target.value = '';
             })
             .finally(() => {
@@ -125,7 +130,7 @@
               e.target.focus();
             });
         } else {
-          appendOutput(`${prompt}`);
+          appendOutput(`${document.getElementById('prompt').textContent}`);
           e.target.value = '';
           e.target.focus();
         }
@@ -146,6 +151,11 @@
         historyIndex = commandHistory.length;
         document.getElementById('command').value = '';
       }
+    }
+
+    function updatePrompt() {
+      const prompt = `${connectionDetails.username}@${connectionDetails.host.split('.')[0]}:${currentDir}:~$ `;
+      document.getElementById('prompt').textContent = prompt;
     }
 
     function appendOutput(text) {
