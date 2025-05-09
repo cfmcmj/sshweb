@@ -44,7 +44,7 @@ app.post('/connect-ssh', (req, res) => {
     }
     finalCommand = `cd ${targetDir} && pwd`;
   } else if (command === 'ls') {
-    finalCommand = 'export TERM=xterm-256color && LS_COLORS="di=34:ln=35:ex=32:fi=37" ls --color=auto';
+    finalCommand = 'export TERM=xterm-256color CLICOLOR=1 && LS_COLORS="di=34:ln=35:ex=32:fi=37" ls -G';
   } else if (command === 'pwd') {
     finalCommand = 'pwd';
   } else {
