@@ -2,12 +2,12 @@ const express = require('express');
 const { Client } = require('ssh2');
 const AnsiToHtml = require('ansi-to-html');
 const app = express();
-const ansiConverter = new AnsiToHtml();
+const ansiConverter = new AnsiToHtml({ fg: '#FFF', bg: '#000' }); // Ensure proper foreground/background colors
 
 app.use(express.static('public'));
 app.use(express.json());
 
-// Store the current working directory for each session (simulated with a simple variable for now)
+// Store the current working directory for each session
 let currentWorkingDir = '/usr/home/jiezi'; // Default starting directory
 
 app.get('/', (req, res) => {
@@ -61,13 +61,14 @@ app.post('/connect-ssh', (req, res) => {
         output += data; // Include stderr for MOTD or errors
       }).on('close', (code, signal) => {
         console.log(`Stream closed with code ${code} and signal ${signal}`);
-        console.log(`Raw output: ${output}`); // Debug raw output
+        console.log(`Raw output: ${JSON.stringify(output)}`); // Debug raw output with ANSI codes
         // If the command was a 'cd', update the current working directory
+        let responseMessage = output.trim();
         if (command.startsWith('cd ')) {
-          currentWorkingDir = output.trim();
-          output = ''; // No output for cd, just update the directory
+          currentWorkingDir = responseMessage;
+          responseMessage = ''; // No output for cd, just update the directory
         }
-        const htmlOutput = ansiConverter.toHtml(output.trim());
+        const htmlOutput = ansiConverter.toHtml(responseMessage);
         conn.end();
         res.json({ message: htmlOutput });
       });
