@@ -44,7 +44,7 @@ app.post('/connect-ssh', (req, res) => {
     }
     finalCommand = `cd ${targetDir} && pwd`;
   } else if (command === 'ls') {
-    finalCommand = 'LS_COLORS="di=34:ln=35:ex=32:fi=37" ls --color=auto'; // Blue dirs, purple links, green execs, white files
+    finalCommand = 'export TERM=xterm-256color && LS_COLORS="di=34:ln=35:ex=32:fi=37" ls --color=auto';
   } else if (command === 'pwd') {
     finalCommand = 'pwd';
   } else {
@@ -54,7 +54,7 @@ app.post('/connect-ssh', (req, res) => {
   const conn = new Client();
   conn.on('ready', () => {
     console.log('SSH connection established');
-    conn.exec(finalCommand, { pty: true }, (err, stream) => {
+    conn.exec(finalCommand, { pty: { term: 'xterm-256color', cols: 80, rows: 24 } }, (err, stream) => {
       if (err) {
         console.error(`Exec error: ${err.message}`);
         conn.end();
