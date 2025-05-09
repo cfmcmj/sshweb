@@ -23,7 +23,8 @@
     #command { flex-grow: 1; }
     .loading { display: none; color: #ff0; }
     /* Ensure ANSI colors are applied correctly */
-    #output div { line-height: 1.2; }
+    #output div { line-height: 1.2; color: #0f0; }
+    #output div span { color: inherit; }
   </style>
 </head>
 <body>
@@ -114,11 +115,9 @@
             })
             .then(data => {
               if (command.startsWith('cd ')) {
-                currentDir = data.message || currentDir; // Update directory if cd command
-                if (data.message) {
+                if (!data.message.startsWith('cd: ')) {
+                  currentDir = data.message || currentDir; // Update directory if cd command succeeds
                   data.message = ''; // Suppress pwd output
-                } else {
-                  data.message = `cd: ${command.slice(3).trim()}: No such file or directory`;
                 }
               }
               appendOutput(`${data.message || data.error}\n`);

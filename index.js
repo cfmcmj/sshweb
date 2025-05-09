@@ -2,7 +2,12 @@ const express = require('express');
 const { Client } = require('ssh2');
 const AnsiToHtml = require('ansi-to-html');
 const app = express();
-const ansiConverter = new AnsiToHtml({ fg: '#FFF', bg: '#000' }); // Ensure proper foreground/background colors
+const ansiConverter = new AnsiToHtml({
+  fg: '#FFF', // Default foreground color
+  bg: '#000', // Default background color
+  newline: true, // Preserve newlines
+  escapeXML: true, // Ensure HTML-safe output
+});
 
 app.use(express.static('public'));
 app.use(express.json());
@@ -31,11 +36,16 @@ app.post('/connect-ssh', (req, res) => {
     return res.status(400).json({ error: 'No command provided' });
   }
 
-  // Handle 'cd' commands to update the working directory
+  // Handle commands
   let finalCommand = command;
   if (command.startsWith('cd ')) {
     const newDir = command.slice(3).trim();
-    finalCommand = `cd ${newDir} && pwd`; // Update directory and return new path
+    // Resolve relative paths manually since each command runs in a new session
+    let targetDir = newDir;
+    if (!newDir.startsWith('/')) {
+      targetDir = `${currentWorkingDir}/${newDir}`; // Convert relative to absolute
+    }
+    finalCommand = `cd ${targetDir} && pwd`; // Update directory and return new path
   } else if (command === 'ls') {
     finalCommand = 'ls --color=auto'; // Ensure ls outputs colors
   } else if (command === 'pwd') {
@@ -61,14 +71,20 @@ app.post('/connect-ssh', (req, res) => {
         output += data; // Include stderr for MOTD or errors
       }).on('close', (code, signal) => {
         console.log(`Stream closed with code ${code} and signal ${signal}`);
-        console.log(`Raw output: ${JSON.stringify(output)}`); // Debug raw output with ANSI codes
+        console.log(`Raw output (hex): ${Buffer.from(output).toString('hex')}`); // Debug raw output in hex to see ANSI codes
+        console.log(`Raw output (string): ${JSON.stringify(output)}`); // Debug raw output as string
         // If the command was a 'cd', update the current working directory
         let responseMessage = output.trim();
         if (command.startsWith('cd ')) {
-          currentWorkingDir = responseMessage;
-          responseMessage = ''; // No output for cd, just update the directory
+          if (code === 0) {
+            currentWorkingDir = responseMessage; // Update directory on success
+            responseMessage = ''; // No output for successful cd
+          } else {
+            responseMessage = `cd: ${command.slice(3).trim()}: No such file or directory`;
+          }
         }
         const htmlOutput = ansiConverter.toHtml(responseMessage);
+        console.log(`HTML output: ${htmlOutput}`); // Debug HTML output
         conn.end();
         res.json({ message: htmlOutput });
       });
